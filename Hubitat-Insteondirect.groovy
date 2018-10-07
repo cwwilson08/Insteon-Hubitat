@@ -1,4 +1,4 @@
- /**
+  /**
  *  Insteon Direct Dimmer/Switch
  *  Original Author     : ethomasii@gmail.com
  *  Creation Date       : 2013-12-08
@@ -37,11 +37,16 @@ metadata {
     }
 }
 
-def fon = [:]
+def rates = [:]
+	rates << ["10" : "Refresh every 10 seconds"]
+	rates << ["15" : "Refresh every 15 seconds"]
+	rates << ["20" : "Refresh every 20 seconds"]
+	rates << ["25" : "Refresh every 25 seconds"]
+	rates << ["30" : "Refresh every 30 seconds"]
+    rates << ["0" : "No Refresh Set"]
+    def fon = [:]
     fon << ["true" : "True"]
     fon << ["false" : "False"]
-
-
 
 preferences {
     input("deviceid", "text", title: "Device ID", description: "Your Insteon device.  Do not include periods example: FF1122.")
@@ -49,6 +54,7 @@ preferences {
     input("port", "text", title: "Port", description: "The hub port.")
     input("username", "text", title: "Username", description: "The hub username (found in app)")
     input("password", "text", title: "Password", description: "The hub password (found in app)")
+    input(name: "refreshRate", type: "enum", title: "Refresh Rate", options: rates, description: "Select Refresh Rate", required: false)
     input(name: "fastOn", type: "enum", title: "FastOn", options: fon, description: "Use FastOn/Off?", required: true)
 } 
  
@@ -153,8 +159,50 @@ def installed() {
 	updated()
 }
 
-def updated() {}
-       
+def updated() {
+        unschedule()
+        //schedule("0/10 * * * * ? *", refresh)
+        switch(refreshRate) {
+    		case "10":
+                unschedule()
+    			schedule("0/10 * * * * ? *", refresh)
+    			log.debug "refreshing in 10 seconds"
+    			break
+    		case "15":
+                unschedule()
+    			schedule("0/15 * * * * ? *", refresh)
+    			log.debug "Refresh set every 15 seconds"
+    			break
+    		case "20":
+                unschedule()
+    			schedule("0/20 * * * * ? *", refresh)
+            	log.debug "Refresh set every 20 seconds"
+                break
+            case "25":
+                unschedule()
+    			schedule("0/25 * * * * ? *", refresh)
+    			log.debug "Refresh set every 25 seconds"
+    			break
+    		case "30":
+                unschedule()
+    			schedule("0/30 * * * * ? *", refresh)
+    			log.debug "Refresh set every 30 seconds"
+    			break
+            case "0":
+    			log.debug "no refresh scheduled 1"
+            	unschedule()
+    			
+    			break
+    		default:
+    			log.debug "no refresh scheduled 2"
+    			
+    	}
+    }
+
+   
+    
+
+
 
 def getStatus() {
 	def params = [
