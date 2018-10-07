@@ -16,7 +16,7 @@
  *  Last Modified Date  : 2018-09-14
  * 
  *  Changelog:
- * 
+ *  2018-10-06: Removed auto refresh in driver - Too many issues
  *  2018-10-01: Added ability to disable auto refresh in driver
  *  2018-09-14: Added Fast ON/OFF & Refresh setting in driver
  *  2018-09-09: Initial release for Hubitat Elevation Hub
