@@ -1,4 +1,5 @@
 import hubitat.helper.InterfaceUtils
+import groovy.json.JsonSlurper
 
 metadata {
     definition (name: "Insteon WS Parent", namespace: "cw", author: "Chris Wilson") {
@@ -23,30 +24,33 @@ preferences {
 
 def parse(String description) {
 	log.debug "data from websocketparsed here"
-	log.debug description
+	def jsonSlurper = new JsonSlurper()
+	def test = jsonSlurper.parseText(description)
+	log.debug "line 29 ${test.name}"
+	log.debug "line 30 ${description}"
     
 }
+
+def refresh(){updated()}
 
 def on(){
 	
 	child = getChildDevice(insteonId)
-	child.parse("on")
+	child.wsStatus("on")
 	 
 }
 
 def off(){
 	
 	child = getChildDevice(insteonId)
-	child.parse("off")
+	child.wsStatus("off")
 	
 }
 
 
 def initialize() {
-   
-    log.info "initialize() called"
-    
-    if (!ip) {
+   log.info "initialize() called"
+   if (!ip) {
         log.warn "Please enter an IP"
         return
     }
@@ -62,6 +66,25 @@ def initialize() {
     }
 }
 
+def updated() {
+    log.info "updated() called"
+    //Unschedule any existing schedules
+    unschedule()
+    
+    //Create a 30 minute timer for debug logging
+    if (logEnable) runIn(1800,logsOff)
+    
+    //Connect the webSocket
+    initialize()
+        
+}
+
+def logsOff(){
+    log.warn "debug logging disabled..."
+    device.updateSetting("logEnable",[value:"false",type:"bool"])
+}
+
+
 def getDevices() {
 	log.debug "getDevices sent"
 	sendMsg ("getDevives")
@@ -71,10 +94,7 @@ def createChild (id, type ) {
 	namespace = "cw"
 	if (type == "motion") {type = "Virtual motion with Switch"}
 	if (type == "contact") {type = "Insteon Contact Child"}
-	
-
-	
-	 addChildDevice (namespace, type, id, [label: type + "|" + id, isComponent: false, name: type])
+	addChildDevice (namespace, type, id, [label: type + "|" + id, isComponent: false, name: type])
 }
 
 def listChild (){
