@@ -9,6 +9,7 @@ metadata {
 		command "getDevices"
 		command "createChild", ["string", "string"]
 		command "listChild"      
+		attribute "connection", ""
         
     }
 }
@@ -23,11 +24,20 @@ preferences {
 
 
 def parse(String description) {
+	
+	if (description.startsWith("Connected to Insteon Server")) {
+        sendEvent(name: "connection", value: "connected")
+       }
 	log.debug "data from websocketparsed here"
 	def jsonSlurper = new JsonSlurper()
-	def test = jsonSlurper.parseText(description)
-	log.debug "line 29 ${test.name}"
-	log.debug "line 30 ${description}"
+	def msg = jsonSlurper.parseText(description)
+	child = getChildDevice("msg.Id")
+	log.debug child
+	//child = getChildDevice(msg.id)
+	log.debug msg.state
+	child.sendEvent(name:contact, value: msg.state)
+	log.debug "line 39 ${msg.name}"
+	log.debug "line 40 ${msg}"
     
 }
 
@@ -36,14 +46,15 @@ def refresh(){updated()}
 def on(){
 	
 	child = getChildDevice(insteonId)
-	child.wsStatus("on")
+	child.sendEvent(name:"contact", value:"open")
 	 
 }
 
 def off(){
 	
 	child = getChildDevice(insteonId)
-	child.wsStatus("off")
+	//child.wsStatus("off")
+	child.sendEvent(name:"contact", value:"closed")
 	
 }
 
@@ -92,7 +103,7 @@ def getDevices() {
 
 def createChild (id, type ) {
 	namespace = "cw"
-	if (type == "motion") {type = "Virtual motion with Switch"}
+	if (type == "motion") {type = "Insteon Motion Child"}
 	if (type == "contact") {type = "Insteon Contact Child"}
 	addChildDevice (namespace, type, id, [label: type + "|" + id, isComponent: false, name: type])
 }
