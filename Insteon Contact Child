@@ -26,11 +26,6 @@ metadata {
 	}   
 }
 
-def parse(String description) {
-	if (description == "on") {sendEvent(name: "contact", value: "open")}
-	if (description == "off") {sendEvent(name: "contact", value: "closed")} 
-	
-}
 
 def installed() {
 }
