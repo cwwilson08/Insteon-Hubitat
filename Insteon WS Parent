@@ -27,6 +27,7 @@ def parse(String description) {
 	
 	if (description.startsWith("Connected to Insteon Server")) {
         sendEvent(name: "connection", value: "connected")
+		return
        }
 	log.debug "data from websocketparsed here"
 	def jsonSlurper = new JsonSlurper()
