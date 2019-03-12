@@ -31,11 +31,11 @@ def parse(String description) {
 		return
        }
 	log.debug "data from websocketparsed here"
-	log.debug "description ${description}"
+	log.debug "descriptionid ${description.id}"
 	def jsonSlurper = new JsonSlurper()
 	def msg = jsonSlurper.parseText(description)
-	log.debug "message: ${msg}"
-	child = getChildDevice("msg.Id")
+	log.debug "message id: ${msg.id}"
+	child = getChildDevice("msg.id")
 	log.debug child
 	//child = getChildDevice(msg.id)
 	log.debug msg.state
