@@ -1,4 +1,4 @@
-import hubitat.helper.InterfaceUtils
+iimport hubitat.helper.InterfaceUtils
 import groovy.json.JsonSlurper
 
 metadata {
@@ -25,13 +25,16 @@ preferences {
 
 def parse(String description) {
 	
+	
 	if (description.startsWith("Connected to Insteon Server")) {
         sendEvent(name: "connection", value: "connected")
 		return
        }
 	log.debug "data from websocketparsed here"
+	log.debug "description ${description}"
 	def jsonSlurper = new JsonSlurper()
 	def msg = jsonSlurper.parseText(description)
+	log.debug "message: ${msg}"
 	child = getChildDevice("msg.Id")
 	log.debug child
 	//child = getChildDevice(msg.id)
@@ -99,7 +102,7 @@ def logsOff(){
 
 def getDevices() {
 	log.debug "getDevices sent"
-	sendMsg ("getDevives")
+	sendMsg ("getDevices")
 }
 
 def createChild (id, type ) {
@@ -110,6 +113,7 @@ def createChild (id, type ) {
 }
 
 def listChild (){
+	log.debug "listChild called"
 	childDevices.each{ it ->
             log.debug "child: ${it.deviceNetworkId}"
            
