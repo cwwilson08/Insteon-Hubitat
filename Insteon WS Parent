@@ -31,21 +31,21 @@ def parse(String description) {
 		return
        }
 	log.debug "data from websocketparsed here"
-   // log.debug "descriptionid ${description[id]}"
+    log.debug "descriptionid ${description[id]}"
 	def jsonSlurper = new JsonSlurper()
 	def msg = jsonSlurper.parseText(description)
-   // log.debug msg
-   // log.debug msg.id
+    log.debug msg
+    log.debug msg.id
     if (msg.id != null){
 	
 	child = getChildDevice("msg.id")
-	//log.debug child
+	log.debug child
 	child = getChildDevice(msg.id)
-	//log.debug msg.state
+	log.debug msg.state
     if (msg.deviceType == "Contact Sensor") {childContact(child, msg.state)}
     if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
-   // i//f (msg.state == 0){
-      //  child.sendEvent(name: "level", value: msg.state)
+  //  if (msg.state == 0){
+      // child.sendEvent(name: "level", value: msg.state)
        // child.sendEvent(name: "switch", value: "off")
    // }
    
@@ -66,9 +66,11 @@ def parse(String description) {
                                                               
 def childContact(child, state){
     //childContact == child
+    log.debug "child conact = ${child}"
+    log.debug "child state = ${state}"
     //childState == state
     
-    child.SendEvent(name: "contact", value: state)}
+    child.sendEvent(name: "contact", value: state)}
 
 def childDimmer(child, state){
     //childContact == child
@@ -80,7 +82,7 @@ def childDimmer(child, state){
     }
    
     if (state > 0){
-        //log.debug state
+        log.debug state
         child.sendEvent(name: "level", value: state)
         child.sendEvent(name: "switch", value: "on")
     }
