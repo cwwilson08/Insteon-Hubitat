@@ -34,31 +34,58 @@ def parse(String description) {
    // log.debug "descriptionid ${description[id]}"
 	def jsonSlurper = new JsonSlurper()
 	def msg = jsonSlurper.parseText(description)
-    log.debug msg
-    log.debug msg.id
+   // log.debug msg
+   // log.debug msg.id
     if (msg.id != null){
-	log.debug "message id: ${msg.id}"
+	
 	child = getChildDevice("msg.id")
-	log.debug child
+	//log.debug child
 	child = getChildDevice(msg.id)
-	log.debug msg.state
-    if (msg.state == 0){
-        child.sendEvent(name: "level", value: msg.state)
-        child.sendEvent(name: "switch", value: "off")
-    }
-    log.debug msg.state
-    if (msg.state > 0){
-        log.debug msg.state
-        child.sendEvent(name: "level", value: msg.state)
-        child.sendEvent(name: "switch", value: "on")
-    }
-    }
+	//log.debug msg.state
+    if (msg.deviceType == "Contact Sensor") {childContact(child, msg.state)}
+    if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
+   // i//f (msg.state == 0){
+      //  child.sendEvent(name: "level", value: msg.state)
+       // child.sendEvent(name: "switch", value: "off")
+   // }
+   
+   // if (msg.state > 0){
+       // log.debug msg.state
+       /// child.sendEvent(name: "level", value: msg.state)
+      // child.sendEvent(name: "switch", value: "on")
+  //  }
+         
+        
+}
+    
+  
                         
-	//child.sendEvent(name: "switch", value: msg.state)
-	log.debug "line 39 ${msg.name}"
-	log.debug "line 40 ${msg}"
+	
     
 }
+                                                              
+def childContact(child, state){
+    //childContact == child
+    //childState == state
+    
+    child.SendEvent(name: "contact", value: state)}
+
+def childDimmer(child, state){
+    //childContact == child
+    //childState == state
+//if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
+    if (state == 0){
+        child.sendEvent(name: "level", value: state)
+        child.sendEvent(name: "switch", value: "off")
+    }
+   
+    if (state > 0){
+        //log.debug state
+        child.sendEvent(name: "level", value: state)
+        child.sendEvent(name: "switch", value: "on")
+    }
+}
+    
 
 def refresh(){updated()}
 
@@ -124,7 +151,7 @@ def createChild (id, type ) {
 	namespace = "cw"
 	if (type == "motion") {type = "Insteon Motion Child"}
 	if (type == "contact") {type = "Insteon Contact Child"}
-    if (type == "Dimmer") {type = "Insteon Dimmer Child"}
+    if (type == "dimmer") {type = "Insteon Dimmer Child"}
 	addChildDevice (namespace, type, id, [label: type + "|" + id, isComponent: false, name: type])
 }
 
