@@ -1,205 +1,31 @@
-import hubitat.helper.InterfaceUtils
-import groovy.json.JsonSlurper
+/**
+ *  Insteon Contact Child
+ *
+ *  Copyright 2018 Chris Wilson
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ *  
+ *
+ 
+ * 
+ */
 
 metadata {
-    definition (name: "Insteon WS Parent", namespace: "cw", author: "Chris Wilson") {
-        capability "Initialize"
-        capability "Refresh"
-		capability "Switch"
-		command "getDevices"
-		command "createChild", ["string", "string"]
-		command "listChild"      
-		attribute "connection", ""
-        
-    }
-}
-
-preferences {
-    input("ip", "text", title: "IP Address", description: "IP Address", required: true)
-	input("port", "text", title: "Port", description: "Port", required: true)
-	//input("type", "text", title: "type", description: "type of device to install", required: false)
-	//input("insteonId", "text", title: "Insteon ID", description: "Insteon device ID", required: false)	  
-    input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
-}
-
-
-def parse(String description) {
-	
-	
-	if (description.startsWith("Connected to Insteon Server")) {
-        sendEvent(name: "connection", value: "connected")
-		return
-       }
-	log.debug "data from websocketparsed here"
-    
-	def jsonSlurper = new JsonSlurper()
-	def msg = jsonSlurper.parseText(description)
-    log.debug msg
-    log.debug msg.id
-    if (msg.id != null){
-	
-	child = getChildDevice("msg.id")
-	log.debug child
-	child = getChildDevice(msg.id)
-	log.debug msg.state
-    if (msg.deviceType == "contactsensor") {childContact(child, msg.state)}
-    if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
-  //  if (msg.state == 0){
-      // child.sendEvent(name: "level", value: msg.state)
-       // child.sendEvent(name: "switch", value: "off")
-   // }
-   
-   // if (msg.state > 0){
-       // log.debug msg.state
-       /// child.sendEvent(name: "level", value: msg.state)
-      // child.sendEvent(name: "switch", value: "on")
-  //  }
-         
-        
-}
-    
-  
-                        
-	
-    
-}
-                                                              
-def childContact(child, state){
-    //childContact == child
-    log.debug "child conact = ${child}"
-    log.debug "child state = ${state}"
-    //childState == state
-    
-    child.sendEvent(name: "contact", value: state)}
-
-def childDimmer(child, state){
-    //childContact == child
-    //childState == state
-//if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
-    if (state == 0){
-        child.sendEvent(name: "level", value: state)
-        child.sendEvent(name: "switch", value: "off")
-    }
-   
-    if (state > 0){
-        log.debug state
-        child.sendEvent(name: "level", value: state)
-        child.sendEvent(name: "switch", value: "on")
-    }
-}
-    
-
-def refresh(){updated()}
-
-def on(){
-	
-	child = getChildDevice(insteonId)
-	child.sendEvent(name:"contact", value:"open")
-	 
-}
-
-def off(){
-	
-	child = getChildDevice(insteonId)
-	//child.wsStatus("off")
-	child.sendEvent(name:"contact", value:"closed")
-	
-}
-
-
-def initialize() {
-   log.info "initialize() called"
-   if (!ip) {
-        log.warn "Please enter an IP"
-        return
-    }
-    
-	try {
+	definition (name: "Insteon Contact Child", namespace: "cw", author: "cwwilson08") {
 		
-       // InterfaceUtils.webSocketConnect(device, "ws://username:password@${ip}:80")
-		InterfaceUtils.webSocketConnect(device, "ws://${ip}:${port}")
-    } 
-    catch(e) {
-        if (logEnable) log.debug "initialize error: ${e.message}"
-        log.error "WebSocket connect failed"
-    }
-}
-
-def updated() {
-    log.info "updated() called"
-    //Unschedule any existing schedules
-    unschedule()
-    
-    //Create a 30 minute timer for debug logging
-    if (logEnable) runIn(1800,logsOff)
-    
-    //Connect the webSocket
-    initialize()
-        
-}
-
-def logsOff(){
-    log.warn "debug logging disabled..."
-    device.updateSetting("logEnable",[value:"false",type:"bool"])
+		capability "Contact Sensor"
+        			
+	}   
 }
 
 
-def getDevices() {
-	log.debug "getDevices sent"
-	sendMsg ("getDevices")
-}
-
-def createChild (id, type ) {
-	namespace = "cw"
-	if (type == "motion") {type = "Insteon Motion Child"}
-	if (type == "contact") {type = "Insteon Contact Child"}
-    if (type == "dimmer") {type = "Insteon Dimmer Child"}
-	addChildDevice (namespace, type, id, [label: type + "|" + id, isComponent: false, name: type])
-}
-
-def listChild (){
-	log.debug "listChild called"
-	childDevices.each{ it ->
-            log.debug "child: ${it.deviceNetworkId}"
-           
-           
-        }
-}
-
-def sendMsg(String s) {
-    InterfaceUtils.sendWebSocketMessage(device, s)
-}
-
-
-
-def webSocketStatus(String status){
-    log.debug "webSocketStatus- ${status}"
-
-    if(status.startsWith('failure: ')) {
-        log.warn("failure message from web socket ${status}")
-        reconnectWebSocket()
-    } 
-    else if(status == 'status: open') {
-        log.info "websocket is open"
-        // success! reset reconnect delay
-        pauseExecution(1000)
-        state.reconnectDelay = 1
-    } 
-    else if (status == "status: closing"){
-        log.warn "WebSocket connection closing."
-    } 
-    else {
-        log.warn "WebSocket error, reconnecting."
-        reconnectWebSocket()
-    }
-}
-
-def reconnectWebSocket() {
-    // first delay is 2 seconds, doubles every time
-    state.reconnectDelay = (state.reconnectDelay ?: 1) * 2
-    // don't let delay get too crazy, max it out at 10 minutes
-    if(state.reconnectDelay > 600) state.reconnectDelay = 600
-
-   
-    runIn(state.reconnectDelay, initialize)
+def installed() {
 }
