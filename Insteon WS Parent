@@ -31,7 +31,7 @@ def parse(String description) {
 		return
        }
 	log.debug "data from websocketparsed here"
-    //log.debug "descriptionid ${description[id]}"
+    
 	def jsonSlurper = new JsonSlurper()
 	def msg = jsonSlurper.parseText(description)
     log.debug msg
