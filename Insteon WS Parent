@@ -2,7 +2,7 @@ import hubitat.helper.InterfaceUtils
 import groovy.json.JsonSlurper
 
 metadata {
-    definition (name: "Insteon WS Parent", namespace: "cw", author: "Chris Wilson") {
+    definition (name: "Insteon WS Parent", namespace: "cw", author: "Chris Wilson", importUrl: "https://raw.githubusercontent.com/cwwilson08/Insteon-Hubitat/master/Insteon%20WS%20Parent") {
         capability "Initialize"
         capability "Refresh"
 		capability "Switch"
