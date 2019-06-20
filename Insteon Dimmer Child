@@ -30,7 +30,7 @@
 import groovy.json.JsonSlurper
 
 metadata {
-    definition (name: "Insteon Dimmer Child", namespace: "cw", author: "cwwilson08") {
+    definition (name: "Insteon Dimmer Child", namespace: "cw", author: "cwwilson08", importUrl: "https://raw.githubusercontent.com/cwwilson08/Insteon-Hubitat/master/Insteon%20Dimmer%20Child") {
         capability "Switch Level"
         capability "Switch"
         capability "Refresh"
