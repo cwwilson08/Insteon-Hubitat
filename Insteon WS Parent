@@ -2,14 +2,9 @@ import hubitat.helper.InterfaceUtils
 import groovy.json.JsonSlurper
 
 metadata {
-    definition (name: "Insteon WS Parent", namespace: "cw", author: "Chris Wilson", importUrl: "https://raw.githubusercontent.com/cwwilson08/Insteon-Hubitat/master/Insteon%20WS%20Parent") {
+    definition (name: "Insteon WS Parent", namespace: "cw", author: "Chris Wilson") {
         capability "Initialize"
-        capability "Refresh"
-		capability "Switch"
-		command "getDevices"
-		command "createChild", ["string", "string"]
-		command "listChild"      
-		attribute "connection", ""
+        attribute "connection", ""
         
     }
 }
@@ -24,6 +19,7 @@ preferences {
 
 
 def parse(String description) {
+    
 	
 	
 	if (description.startsWith("Connected to Insteon Server")) {
@@ -34,19 +30,23 @@ def parse(String description) {
     
 	def jsonSlurper = new JsonSlurper()
 	def msg = jsonSlurper.parseText(description)
-    log.debug msg
-    log.debug msg.id
+    
+    if (msg.dimmable){
+        createDevices(msg)
+        return
+    }
+    
     if (msg.id != null){
-	
-	child = getChildDevice("msg.id")
-	log.debug child
-	child = getChildDevice(msg.id)
-	log.debug msg.state
+        if(state.childDevice.contains(msg.id)){
+	    log.debug child
+    
+	    child = getChildDevice(msg.id)
+	    log.debug msg.state
     if (msg.deviceType == "contactsensor") {childContact(child, msg.state)}
     if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
     if (msg.deviceType == "leaksensor") {childLeakSensor(child, msg.state)}
 
-         
+                                              } 
      }
 }
                                                               
@@ -75,24 +75,6 @@ def childDimmer(child, state){
 }
     
 
-def refresh(){updated()}
-
-def on(){
-	
-	child = getChildDevice(insteonId)
-	child.sendEvent(name:"contact", value:"open")
-	 
-}
-
-def off(){
-	
-	child = getChildDevice(insteonId)
-	//child.wsStatus("off")
-	child.sendEvent(name:"contact", value:"closed")
-	
-}
-
-
 def initialize() {
    log.info "initialize() called"
    if (!ip) {
@@ -102,13 +84,14 @@ def initialize() {
     
 	try {
 		
-       // InterfaceUtils.webSocketConnect(device, "ws://username:password@${ip}:80")
+       
 		InterfaceUtils.webSocketConnect(device, "ws://${ip}:${port}")
     } 
     catch(e) {
         if (logEnable) log.debug "initialize error: ${e.message}"
         log.error "WebSocket connect failed"
     }
+    
 }
 
 def updated() {
@@ -120,7 +103,8 @@ def updated() {
     if (logEnable) runIn(1800,logsOff)
     
     //Connect the webSocket
-    initialize()
+    runIn(2, listChild)
+    runIn(4, getDevices)
         
 }
 
@@ -144,13 +128,33 @@ def createChild (id, type ) {
 	addChildDevice (namespace, type, id, [label: type + "|" + id, isComponent: false, name: type])
 }
 
+
+def createDevices(msg){ msg.each { it->
+    namespace = "cw"
+    if (it.deviceType == "motion") {type = "Insteon Motion Child"}
+	if (it.deviceType == "contact") {type = "Insteon Contact Child"}
+    if (it.deviceType == "dimmer") {type = "Insteon Dimmer Child"}
+    if (it.deviceType == "leaksensor") {type = "Insteon Leak Child"}
+    if(!state.childDevice.contains(it.deviceID)){
+	addChildDevice (namespace, type, it.deviceID, [label: it.name, isComponent: false, name: type])
+    }
+    
+    }
+    listChild()
+    
+}
 def listChild (){
+    def myMap =[]
 	log.debug "listChild called"
 	childDevices.each{ it ->
             log.debug "child: ${it.deviceNetworkId}"
-           
-           
-        }
+            myMap << it.deviceNetworkId
+            
+            
+    }
+    log.debug myMap
+    state.childDevice = myMap
+    
 }
 
 def sendMsg(String s) {
