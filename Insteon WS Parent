@@ -1,5 +1,7 @@
 /**
- *  Insteon WS Parent
+ *  Hubitat Import Url: https://raw.githubusercontent.com/cwwilson08/Insteon-Hubitat/master/Insteon%20WS%20Parent
+ *
+ * Insteon WS Parent
  *
  *  Copyright 2019 Chris Wilson
  *
@@ -50,7 +52,7 @@ import groovy.json.JsonSlurper
 metadata {
 definition (name: "Insteon WS Parent", namespace: "cw", author: "Chris Wilson") {
     capability "Initialize"
-    capability "Switch"
+    
     attribute "connection", ""
     
 }
