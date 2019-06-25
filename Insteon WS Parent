@@ -1,196 +1,312 @@
+/**
+ *  Insteon WS Parent
+ *
+ *  Copyright 2019 Chris Wilson
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ *  
+ *  
+ *
+ *  Original Author     : ethomasii@gmail.com
+ *  Creation Date       : 2013-12-08
+ *
+ *  Rewritten by        : idealerror
+ *  Last Modified Date  : 2016-12-13 
+ *
+ *  Rewritten by        : kuestess
+ *  Last Modified Date  : 2017-09-30
+ * 
+ *  Hubitat port by    @cwwilson08
+ *  Last Modified Date  : 2019-06-24
+ *
+ * 
+ *  Changelog:
+ *  2019-06-24: Merge functions of original Insteon Direct dimmer code with WS so all calls are completed by parent device
+ *  2019-06-23: Convert to async http calls - major code cleanup
+ *  2019-06-23: Utilize ogiewon's websocket reconncet code
+ *  2018-10-01: Added ability to disable auto refresh in driver
+ *  2018-09-14: Added Fast ON/OFF & Refresh setting in driver
+ *  2018-09-09: Initial release for Hubitat Elevation Hub
+ *  2016-12-13: Added polling for Hub2
+ *  2016-12-13: Added background refreshing every 3 minutes
+ *  2016-11-21: Added refresh/polling functionality
+ *  2016-10-15: Added full dimming functions
+ *  2016-10-01: Redesigned interface tiles
+ * 
+ */
+
+
 import hubitat.helper.InterfaceUtils
 import groovy.json.JsonSlurper
 
 metadata {
-    definition (name: "Insteon WS Parent", namespace: "cw", author: "Chris Wilson") {
-        capability "Initialize"
-        attribute "connection", ""
-        
-    }
+definition (name: "Insteon WS Parent", namespace: "cw", author: "Chris Wilson") {
+    capability "Initialize"
+    capability "Switch"
+    attribute "connection", ""
+    
+}
 }
 
 preferences {
-    input("ip", "text", title: "IP Address", description: "IP Address", required: true)
-	input("port", "text", title: "Port", description: "Port", required: true)
-	//input("type", "text", title: "type", description: "type of device to install", required: false)
-	//input("insteonId", "text", title: "Insteon ID", description: "Insteon device ID", required: false)	  
+input("ip", "text", title: "Websocket IP Address", description: "Websocket IP Address", required: true)
+	input("wsPort", "text", title: "WS Port", description: "Websocket Port", required: true)
+    input("host", "text", title: "URL", description: "The URL of your Insteon Hub (without http:// example: my.hub.com ")
+    input("instPort", "text", title: "Insteon Hub Port", description: "The insteon hub port.")
+    input("username", "text", title: "Username", description: "The hub username (found in app)")
+    input("password", "text", title: "Password", description: "The hub password (found in app)")
     input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
 }
 
 
 def parse(String description) {
-    
-	
-	
-	if (description.startsWith("Connected to Insteon Server")) {
-        sendEvent(name: "connection", value: "connected")
+    if (logEnable)log.debug "data from websocketparsed here"
+    if (logEnable)log.debug "description: ${description}"
+    if (description.startsWith("Connected to Insteon Server")) {
+    sendEvent(name: "connection", value: "connected")
 		return
-       }
-	log.debug "data from websocketparsed here"
-    
+   }
+	
+
 	def jsonSlurper = new JsonSlurper()
 	def msg = jsonSlurper.parseText(description)
-    
-    if (msg.dimmable){
-        createDevices(msg)
-        return
-    }
-    
-    if (msg.id != null){
-        if(state.childDevice.contains(msg.id)){
-	    log.debug child
-    
-	    child = getChildDevice(msg.id)
-	    log.debug msg.state
-    if (msg.deviceType == "contactsensor") {childContact(child, msg.state)}
-    if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
-    if (msg.deviceType == "leaksensor") {childLeakSensor(child, msg.state)}
 
-                                              } 
-     }
+if (msg.dimmable){
+    createDevices(msg)
+    return
 }
-                                                              
+
+if (msg.id != null){
+    if(state.childDevice.contains(msg.id)){
+	child = getChildDevice(msg.id)
+        log.debug "Got event for Device ${child} with a value of ${msg.state}"   
+if (msg.deviceType == "contactsensor") {childContact(child, msg.state)}
+if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
+if (msg.deviceType == "lightbulb") {childDimmer(child, msg.state)}        
+if (msg.deviceType == "leaksensor") {childLeakSensor(child, msg.state)}
+
+                                          } 
+ }
+}
+                                                          
 def childContact(child, state){
-    log.debug "child conact = ${child}"
-    log.debug "child state = ${state}"
-    child.sendEvent(name: "contact", value: state)}
+if (logEnable) log.debug "child conact = ${child}"
+if (logEnable) log.debug "child state = ${state}"
+child.sendEvent(name: "contact", value: state)}
 
 def childLeakSensor(child, state){
-    log.debug "child leak = ${child}"
-    log.debug "child state = ${state}"
-    child.sendEvent(name: "water", value: state)}
+if (logEnable) log.debug "child leak = ${child}"
+if (logEnable)log.debug "child state = ${state}"
+child.sendEvent(name: "water", value: state)}
 
 
 def childDimmer(child, state){
-    if (state == 0){
-        child.sendEvent(name: "level", value: state)
-        child.sendEvent(name: "switch", value: "off")
-    }
-   
-    if (state > 0){
-        log.debug state
-        child.sendEvent(name: "level", value: state)
-        child.sendEvent(name: "switch", value: "on")
-    }
+if (state == 0){
+    child.sendEvent(name: "level", value: state)
+    child.sendEvent(name: "switch", value: "off")
 }
-    
+   
+if (state > 0){
+   if (logEnable) log.debug state
+    child.sendEvent(name: "level", value: state)
+    child.sendEvent(name: "switch", value: "on")
+}
+}
+
 
 def initialize() {
    log.info "initialize() called"
    if (!ip) {
-        log.warn "Please enter an IP"
-        return
-    }
-    
+    log.warn "Please enter an IP"
+    return
+}
+
 	try {
 		
-       
-		InterfaceUtils.webSocketConnect(device, "ws://${ip}:${port}")
-    } 
-    catch(e) {
-        if (logEnable) log.debug "initialize error: ${e.message}"
-        log.error "WebSocket connect failed"
-    }
-    
+   
+		InterfaceUtils.webSocketConnect(device, "ws://${ip}:${wsPort}")
+} 
+catch(e) {
+    if (logEnable) log.debug "initialize error: ${e.message}"
+    log.error "WebSocket connect failed"
+    sendEvent(name: "connection", value: "disconnected")
+}
+
 }
 
 def updated() {
-    log.info "updated() called"
-    //Unschedule any existing schedules
-    unschedule()
-    
-    //Create a 30 minute timer for debug logging
-    if (logEnable) runIn(1800,logsOff)
-    
-    //Connect the webSocket
+log.info "updated() called"
+//Unschedule any existing schedules
+unschedule()
+
+//Create a 30 minute timer for debug logging
+if (logEnable) runIn(1800,logsOff)
+
+//Connect the webSocket
+    initialize()
     runIn(2, listChild)
     runIn(4, getDevices)
-        
+    
 }
 
 def logsOff(){
-    log.warn "debug logging disabled..."
-    device.updateSetting("logEnable",[value:"false",type:"bool"])
+log.warn "debug logging disabled..."
+device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
 
 
 def getDevices() {
-	log.debug "getDevices sent"
+	if (logEnable) log.debug "getDevices sent"
 	sendMsg ("getDevices")
-}
-
-def createChild (id, type ) {
-	namespace = "cw"
-	if (type == "motion") {type = "Insteon Motion Child"}
-	if (type == "contact") {type = "Insteon Contact Child"}
-    if (type == "dimmer") {type = "Insteon Dimmer Child"}
-    if (type == "leaksensor") {type = "Insteon Leak Child"}
-	addChildDevice (namespace, type, id, [label: type + "|" + id, isComponent: false, name: type])
 }
 
 
 def createDevices(msg){ msg.each { it->
     namespace = "cw"
-    if (it.deviceType == "motion") {type = "Insteon Motion Child"}
-	if (it.deviceType == "contact") {type = "Insteon Contact Child"}
+    if (it.deviceType == "motionsensor") {type = "Insteon Motion Child"}
+	if (it.deviceType == "contactsensor") {type = "Insteon Contact Child"}
     if (it.deviceType == "dimmer") {type = "Insteon Dimmer Child"}
     if (it.deviceType == "leaksensor") {type = "Insteon Leak Child"}
+    if (it.deviceType == "lightbulb") {type = "Insteon Dimmer Child"}
+    if (logEnable)log.debug type
+    if (logEnable)log.debug it.deviceID
+    if (logEnable)log.debug it.name
     if(!state.childDevice.contains(it.deviceID)){
+    log.debug "creating device: ${it.name}"
 	addChildDevice (namespace, type, it.deviceID, [label: it.name, isComponent: false, name: type])
-    }
-    
-    }
-    listChild()
-    
+}
+
+}
+listChild()
+
 }
 def listChild (){
-    def myMap =[]
-	log.debug "listChild called"
+def myMap =[]
+	if (logEnable)log.debug "listChild called"
 	childDevices.each{ it ->
-            log.debug "child: ${it.deviceNetworkId}"
-            myMap << it.deviceNetworkId
-            
-            
-    }
-    log.debug myMap
-    state.childDevice = myMap
-    
+        if (logEnable)log.debug "child: ${it.deviceNetworkId}"
+        myMap << it.deviceNetworkId
+        
+        
+}
+if (logEnable)log.debug myMap
+state.childDevice = myMap
+
 }
 
 def sendMsg(String s) {
-    InterfaceUtils.sendWebSocketMessage(device, s)
+InterfaceUtils.sendWebSocketMessage(device, s)
 }
 
 
 
 def webSocketStatus(String status){
-    log.debug "webSocketStatus- ${status}"
+if (logEnable)log.debug "webSocketStatus- ${status}"
 
-    if(status.startsWith('failure: ')) {
-        log.warn("failure message from web socket ${status}")
-        reconnectWebSocket()
-    } 
-    else if(status == 'status: open') {
-        log.info "websocket is open"
-        // success! reset reconnect delay
-        pauseExecution(1000)
-        state.reconnectDelay = 1
-    } 
-    else if (status == "status: closing"){
-        log.warn "WebSocket connection closing."
-    } 
-    else {
-        log.warn "WebSocket error, reconnecting."
-        reconnectWebSocket()
-    }
+if(status.startsWith('failure: ')) {
+    log.warn("failure message from web socket ${status}")
+    sendEvent(name: "connection", value: "disconnected")
+    reconnectWebSocket()
+} 
+else if(status == 'status: open') {
+    sendEvent(name: "connection", value: "connected")    
+    log.info "websocket is open"
+    if (logEnable)log.debug "Resetting reconnect delay"
+    // success! reset reconnect delay
+    pauseExecution(1000)
+    state.reconnectDelay = 1
+} 
+else if (status == "status: closing"){
+    log.warn "WebSocket connection closing."
+    sendEvent(name: "connection", value: "disconnected")
+} 
+else {
+    log.warn "WebSocket error, reconnecting."
+    reconnectWebSocket()
+}
 }
 
 def reconnectWebSocket() {
-    // first delay is 2 seconds, doubles every time
-    state.reconnectDelay = (state.reconnectDelay ?: 1) * 2
-    // don't let delay get too crazy, max it out at 10 minutes
-    if(state.reconnectDelay > 600) state.reconnectDelay = 600
+// first delay is 2 seconds, doubles every time
+state.reconnectDelay = (state.reconnectDelay ?: 1) * 2
+// don't let delay get too crazy, max it out at 10 minutes
+if(state.reconnectDelay > 600) state.reconnectDelay = 600
 
    
-    runIn(state.reconnectDelay, initialize)
+runIn(state.reconnectDelay, initialize)
+}
+
+
+////control functions here
+
+
+def setLevel(value, deviceid) {
+
+    if (logEnable)log.debug "setLevel >> value: $value"
+    
+    // Max is 255
+    def percent = value / 100
+    def realval = percent * 255
+    def valueaux = realval as Integer
+    def level = Math.max(Math.min(valueaux, 255), 0)
+    if (level > 0) {
+        sendEvent(name: "switch", value: "on")
+    } else {
+        sendEvent(name: "switch", value: "off")
+    }
+    if (logEnable)log.debug "dimming value is $valueaux"
+    if (logEnable)log.debug "dimming to $level"
+    dim(level,value, deviceid)
+}
+
+def setLevel(value, rate, deviceid) {
+
+    if (logEnable)log.debug "setLevel >> value: $value"
+    
+    // Max is 255
+    def percent = value / 100
+    def realval = percent * 255
+    def valueaux = realval as Integer
+    def level = Math.max(Math.min(valueaux, 255), 0)
+    if (level > 0) {
+        sendEvent(name: "switch", value: "on")
+    } else {
+        sendEvent(name: "switch", value: "off")
+    }
+    if (logEnable)log.debug "dimming value is $valueaux"
+    if (logEnable)log.debug "dimming to $level"
+    dim(level,value)
+}
+
+def dim(level, real, deviceid) {
+    String hexlevel = level.toString().format( '%02x', level.toInteger() )
+   
+    if (logEnable)log.debug "Dimming Device: ${deviceid} to hex $hexlevel"
+    sendCmd("11",hexlevel, deviceid)
+}
+
+def sendCmd(num, level, deviceid){
+    
+    def requestParams = [ uri: "http://${settings.username}:${settings.password}@${settings.host}:${settings.instPort}//3?0262${deviceid}0F${num}${level}=I=3" ]
+    if(logEnable)log.debug requestParams
+    if(logEnable)log.debug "Sending command to Device: ${device} with parameters Command: ${num} Level ${level}"
+	asynchttpGet("cmdHandler", requestParams)
+}
+
+def cmdHandler(resp, data) {
+	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
+        if (logEnable) "Command Sent successfully"
+    
+        } else {
+        
+		    log.error "Error sending command to device"
+	}
 }
