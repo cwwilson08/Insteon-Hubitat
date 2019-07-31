@@ -1,0 +1,55 @@
+metadata {
+	definition (name: "Insteon Button Child", namespace: "cw", author: "Chris Wilson") {
+		capability "PushableButton"
+        capability "HoldableButton"
+        capability "DoubleTapableButton"
+        capability "ReleasableButton"
+       
+		
+        
+        command "doubleTap", ["string"]
+        command "release", ["string"]
+        command "push", ["string"]
+        command "hold", ["string"]
+        
+        attribute "button1", ""
+        attribute "button2", ""
+        attribute "button3", ""
+        attribute "button4", ""
+        attribute "button5", ""
+        attribute "button6", ""
+        attribute "button7", ""
+        attribute "button8", ""
+        
+	}   
+}
+
+
+
+
+def doubleTap(num) {
+    sendEvent(name: "doubleTapped", value: num)
+}
+
+
+def push(num) {
+    sendEvent(name: "pushed", value: num)
+}
+
+def hold(num) {
+    sendEvent(name: "held", value: num)
+}
+
+
+def release(num) {
+    sendEvent(name: "released", value: num)
+}
+
+def installed() {
+              
+	sendEvent(name: "numberOfButtons", value: "8")
+}
+def updated() {
+              
+	sendEvent(name: "numberOfButtons", value: "8")
+}
