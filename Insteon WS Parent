@@ -31,6 +31,7 @@
  *
  * 
  *  Changelog:
+ *  2019-07-31: Keypad support
  *  2019-06-24: Merge functions of original Insteon Direct dimmer code with WS so all calls are completed by parent device
  *  2019-06-23: Convert to async http calls - major code cleanup
  *  2019-06-23: Utilize ogiewon's websocket reconncet code
@@ -87,44 +88,129 @@ if (msg.dimmable){
 }
 
 if (msg.id != null){
+    log.debug msg
     if(state.childDevice.contains(msg.id)){
 	child = getChildDevice(msg.id)
+        log.debug msg
         log.debug "Got event for Device ${child} with a value of ${msg.state}"   
-if (msg.deviceType == "contactsensor") {childContact(child, msg.state)}
-if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
-if (msg.deviceType == "lightbulb") {childDimmer(child, msg.state)}        
-if (msg.deviceType == "leaksensor") {childLeakSensor(child, msg.state)}
+        if (msg.deviceType == "contactsensor") {childContact(child, msg.state)}
+        if (msg.deviceType == "dimmer") {childDimmer(child, msg.state)}
+        if (msg.deviceType == "leaksensor") {childLeakSensor(child, msg.state)}
+        if (msg.deviceType == "scene") {childButton(child, msg.state, msg.raw, msg.gatewayId)
+                               
+                               }        
 
                                           } 
  }
 }
                                                           
 def childContact(child, state){
-if (logEnable) log.debug "child conact = ${child}"
-if (logEnable) log.debug "child state = ${state}"
-child.sendEvent(name: "contact", value: state)}
+    if (logEnable) log.debug "child conact = ${child}"
+    if (logEnable) log.debug "child state = ${state}"
+    child.sendEvent(name: "contact", value: state)}
+
+def childButton(child, state, raw, gatewayid){
+    log.debug gatewayid
+    if (gatewayid != "000001" && gatewayid != "000002" && gatewayid != "000003" && gatewayid != "000004" && gatewayid != "000005" && gatewayid != "000006" && gatewayid != "000007"&& gatewayid != "000008") { 
+        log.debug "skipping this data"
+     
+    } else {
+    
+    log.debug "childButton called"
+    log.debug raw
+    btnNmbr = gatewayid[-1..-1]
+    btnCmd2 = raw[-4..-3]
+     if (btnCmd == "FF"){
+         log.debug "ignoring this info for now"
+                       
+     } else {
+         log.debug "pushed button ${btnNmbr}"
+    log.debug btnCmd2
+   // btnPush = btnNmbr
+          def cmd 
+          def event
+    switch(btnCmd2) {
+        case "11":
+    		cmd = "on"
+            event = "pushed"
+            child.sendEvent(name: event, value: btnNmbr)
+            child.sendEvent(name: "button${btnNmbr}", value: cmd)
+        	break
+        case "14":
+    		cmd = "off"
+            event = "doubleTapped"
+            child.sendEvent(name: event, value: btnNmbr)
+            child.sendEvent(name: "button${btnNmbr}", value: cmd)
+        	break
+        case "12":
+    		cmd = "on"
+            event = "doubleTapped"
+            child.sendEvent(name: event, value: btnNmbr)
+            child.sendEvent(name: "button${btnNmbr}", value: cmd)
+        	break
+        case "13":
+    		cmd = "off"
+            event = "pushed"
+            child.sendEvent(name: event, value: btnNmbr)
+            child.sendEvent(name: "button${btnNmbr}", value: cmd)
+        	break
+         case "17":
+    		//cmd = "held"
+            event = "held"
+            
+            child.sendEvent(name: event, value: btnNmbr)
+            break
+         case "18":
+    		//cmd = "released"
+            event = "released"
+            child.sendEvent(name: event, value: btnNmbr)
+        	break
+        
+        default:
+            break
+    }
+       //  if(event == "released" && event == "held") {
+         //    child.sendEvent(name: event, value: btnNmber)
+       //  } else {
+           //  if(event == "pushed" && event == "doubleTapped")
+   // child.sendEvent(name: event, value: btnNmbr)
+       //  child.sendEvent(name: "button${btnNmbr}", value: cmd)
+       //  }    
+     
+        // if (btnCmd2 == "11") {
+            // child.sendEvent(name: "button${btnNmbr}", value: "on")
+        // } else {
+          //  child.sendEvent(name: "button${btnNmbr}", value: "off")
+   //  }
+//if (logEnable) log.debug "child conact = ${child}"
+//if (logEnable) log.debug "child state = ${state}"
+//child.sendEvent(name: "contact", value: state)}
+    }
+}
+}
 
 def childLeakSensor(child, state){
-if (logEnable) log.debug "child leak = ${child}"
-if (logEnable)log.debug "child state = ${state}"
-child.sendEvent(name: "water", value: state)}
+    if (logEnable) log.debug "child leak = ${child}"
+    if (logEnable)log.debug "child state = ${state}"
+    child.sendEvent(name: "water", value: state)}
 
 
 def childDimmer(child, state){
-if (state == 0){
-    child.sendEvent(name: "level", value: state)
-    child.sendEvent(name: "switch", value: "off")
+    if (state == 0){
+        child.sendEvent(name: "level", value: state)
+        child.sendEvent(name: "switch", value: "off")
 }
    
 if (state > 0){
    if (logEnable) log.debug state
     child.sendEvent(name: "level", value: state)
     child.sendEvent(name: "switch", value: "on")
-}
+    }
 }
 
 
 def initialize() {
+    interfaces.webSocket.close()
    log.info "initialize() called"
    if (!ip) {
     log.warn "Please enter an IP"
@@ -145,6 +231,8 @@ catch(e) {
 }
 
 def updated() {
+    interfaces.webSocket.close()
+    
 log.info "updated() called"
 //Unschedule any existing schedules
 unschedule()
@@ -177,7 +265,7 @@ def createDevices(msg){ msg.each { it->
 	if (it.deviceType == "contactsensor") {type = "Insteon Contact Child"}
     if (it.deviceType == "dimmer") {type = "Insteon Dimmer Child"}
     if (it.deviceType == "leaksensor") {type = "Insteon Leak Child"}
-    if (it.deviceType == "lightbulb") {type = "Insteon Dimmer Child"}
+    if (it.deviceType == "scene") {type = "Insteon Button Child"}
     if (logEnable)log.debug type
     if (logEnable)log.debug it.deviceID
     if (logEnable)log.debug it.name
